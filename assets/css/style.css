@@ -1,26 +1,33 @@
-.elementor-field-group.avp-valid .elementor-field,
-.elementor-field-group.avp-valid input {
-    border-color: #4CAF50 !important;
-    border-width: 2.5px !important;
-    background: linear-gradient(to right, rgba(76, 175, 80, 0.15), rgba(255, 255, 255, 0.05)) !important;
+/* CSS Variables for dynamic colors */
+:root {
+    --avp-error-color: #f44336;
+    --avp-success-color: #4CAF50;
 }
 
-.elementor-field-group.avp-invalid .elementor-field,
-.elementor-field-group.avp-invalid input {
-    border-color: #f44336 !important;
+/* Only apply colors when highlighting is enabled */
+body.avp-highlight-enabled .elementor-field-group.avp-valid .elementor-field,
+body.avp-highlight-enabled .elementor-field-group.avp-valid input {
+    border-color: var(--avp-success-color) !important;
     border-width: 2.5px !important;
-    background: linear-gradient(to right, rgba(244, 67, 54, 0.15), rgba(255, 255, 255, 0.05)) !important;
+    background: linear-gradient(to right, color-mix(in srgb, var(--avp-success-color) 15%, transparent), rgba(255, 255, 255, 0.05)) !important;
+}
+
+body.avp-highlight-enabled .elementor-field-group.avp-invalid .elementor-field,
+body.avp-highlight-enabled .elementor-field-group.avp-invalid input {
+    border-color: var(--avp-error-color) !important;
+    border-width: 2.5px !important;
+    background: linear-gradient(to right, color-mix(in srgb, var(--avp-error-color) 15%, transparent), rgba(255, 255, 255, 0.05)) !important;
 }
 
 /* כשעומדים עם העכבר על השדה */
-.elementor-field-group.avp-valid .elementor-field:hover,
-.elementor-field-group.avp-valid input:hover {
-    background: linear-gradient(to right, rgba(76, 175, 80, 0.15), rgba(255, 255, 255, 0)) !important;
+body.avp-highlight-enabled .elementor-field-group.avp-valid .elementor-field:hover,
+body.avp-highlight-enabled .elementor-field-group.avp-valid input:hover {
+    background: linear-gradient(to right, color-mix(in srgb, var(--avp-success-color) 15%, transparent), rgba(255, 255, 255, 0)) !important;
 }
 
-.elementor-field-group.avp-invalid .elementor-field:hover,
-.elementor-field-group.avp-invalid input:hover {
-    background: linear-gradient(to right, rgba(244, 67, 54, 0.15), rgba(255, 255, 255, 0)) !important;
+body.avp-highlight-enabled .elementor-field-group.avp-invalid .elementor-field:hover,
+body.avp-highlight-enabled .elementor-field-group.avp-invalid input:hover {
+    background: linear-gradient(to right, color-mix(in srgb, var(--avp-error-color) 15%, transparent), rgba(255, 255, 255, 0)) !important;
 }
 
 /* Validation message styling */
@@ -31,7 +38,6 @@
     font-weight: 500 !important;
     direction: rtl !important;
     text-align: right !important;
-    display: block !important;
     width: 100% !important;
     box-sizing: border-box !important;
     border-radius: 3px !important;
@@ -42,13 +48,13 @@
 }
 
 .avp-validation-message.avp-valid {
-    color: #4CAF50 !important;
-    border-right: 3px solid #4CAF50 !important;
+    color: var(--avp-success-color) !important;
+    border-right: 3px solid var(--avp-success-color) !important;
 }
 
 .avp-validation-message.avp-invalid {
-    color: #f44336 !important;
-    border-right: 3px solid #f44336 !important;
+    color: var(--avp-error-color) !important;
+    border-right: 3px solid var(--avp-error-color) !important;
 }
 
 /* Message positioning */

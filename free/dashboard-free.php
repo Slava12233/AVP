@@ -49,34 +49,13 @@ function render_settings_page() {
             
             <h2><?php echo \esc_html__('Free Features', 'advanced-validation'); ?></h2>
             <table class="form-table">
-                <tr>
-                    <th scope="row"><?php echo \esc_html__('Validate Email Format', 'advanced-validation'); ?></th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="avp_free_settings[validate_email]" 
-                                value="1" <?php \checked($settings['validate_email']); ?>>
-                            <?php echo \esc_html__('Enable basic email format validation', 'advanced-validation'); ?>
-                        </label>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><?php echo \esc_html__('Validate Phone Format', 'advanced-validation'); ?></th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="avp_free_settings[validate_phone]" 
-                                value="1" <?php \checked($settings['validate_phone']); ?>>
-                            <?php echo \esc_html__('Enable basic phone format validation', 'advanced-validation'); ?>
-                        </label>
-                    </td>
-                </tr>
-
                 <!-- Visual Settings -->
                 <tr>
                     <th scope="row"><?php echo \esc_html__('Show Error Labels', 'advanced-validation'); ?></th>
                     <td>
                         <label>
                             <input type="checkbox" name="avp_free_settings[show_labels]" 
-                                value="1" <?php \checked($settings['show_labels'] ?? true); ?>>
+                                value="1" <?php \checked(isset($settings['show_labels']) ? $settings['show_labels'] : false); ?>>
                             <?php echo \esc_html__('Display error messages below invalid fields', 'advanced-validation'); ?>
                         </label>
                     </td>
@@ -86,7 +65,7 @@ function render_settings_page() {
                     <td>
                         <label>
                             <input type="checkbox" name="avp_free_settings[highlight_fields]" 
-                                value="1" <?php \checked($settings['highlight_fields'] ?? true); ?>>
+                                value="1" <?php \checked(isset($settings['highlight_fields']) ? $settings['highlight_fields'] : false); ?>>
                             <?php echo \esc_html__('Change field color when validation fails', 'advanced-validation'); ?>
                         </label>
                     </td>
@@ -105,7 +84,7 @@ function render_settings_page() {
                     <th scope="row"><?php echo \esc_html__('Success Color', 'advanced-validation'); ?></th>
                     <td>
                         <input type="color" name="avp_free_settings[success_color]" 
-                            value="<?php echo \esc_attr($settings['success_color']); ?>">
+                            value="<?php echo \esc_attr($settings['success_color'] ?? '#00ff00'); ?>">
                         <p class="description">
                             <?php echo \esc_html__('Color used for valid fields', 'advanced-validation'); ?>
                         </p>

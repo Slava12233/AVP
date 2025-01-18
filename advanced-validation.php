@@ -68,6 +68,16 @@ function avp_maybe_enqueue_scripts() {
     }
     
     wp_enqueue_style('avp-style', AVP_PLUGIN_URL . 'assets/css/style.css', [], AVP_VERSION);
+    wp_enqueue_script('avp-validation', AVP_PLUGIN_URL . 'assets/js/validation.js', ['jquery'], AVP_VERSION, true);
+    
+    // Pass settings to JavaScript
+    $settings = \AVP\Helpers\get_plugin_settings('free');
+    wp_localize_script('avp-validation', 'avpSettings', [
+        'showLabels' => !empty($settings['show_labels']),
+        'highlightFields' => !empty($settings['highlight_fields']),
+        'errorColor' => $settings['error_color'] ?? '#ff0000',
+        'successColor' => $settings['success_color'] ?? '#00ff00'
+    ]);
 }
 
 // Hook initialization

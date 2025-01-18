@@ -1,6 +1,28 @@
 jQuery(document).ready(function($) {
     console.log('AVP: Validation script loaded');
     
+    // Add or remove highlight class based on settings
+    if (window.avpSettings) {
+        if (window.avpSettings.highlightFields) {
+            $('body').addClass('avp-highlight-enabled');
+        } else {
+            $('body').removeClass('avp-highlight-enabled');
+        }
+        
+        // Set CSS variables for colors
+        document.documentElement.style.setProperty('--avp-error-color', window.avpSettings.errorColor);
+        document.documentElement.style.setProperty('--avp-success-color', window.avpSettings.successColor);
+        
+        const styles = `
+            .avp-validation-message { display: ${window.avpSettings.showLabels ? 'block' : 'none'} !important; }
+        `;
+        
+        $('<style>')
+            .prop('type', 'text/css')
+            .html(styles)
+            .appendTo('head');
+    }
+    
     // Track validation state for all fields
     const validationState = {
         email: false,
@@ -37,19 +59,21 @@ jQuery(document).ready(function($) {
             const $submitButton = $form.find('.elementor-button[type="submit"]');
             $submitButton.prop('disabled', true).css('opacity', '0.5');
             
-            // Show message to user
-            const $message = $('<div>')
-                .addClass('avp-form-error')
-                .css({
-                    'color': '#f44336',
-                    'margin-top': '10px',
-                    'text-align': 'center',
-                    'font-weight': 'bold'
-                })
-                .text('נא לתקן את השדות המסומנים באדום לפני שליחת הטופס');
-            
-            $submitButton.after($message);
-            setTimeout(() => $message.fadeOut(500, function() { $(this).remove(); }), 3000);
+            // Show message to user only if labels are enabled
+            if (window.avpSettings && window.avpSettings.showLabels) {
+                const $message = $('<div>')
+                    .addClass('avp-form-error')
+                    .css({
+                        'color': window.avpSettings.errorColor || '#f44336',
+                        'margin-top': '10px',
+                        'text-align': 'center',
+                        'font-weight': 'bold'
+                    })
+                    .text('נא לתקן את השדות המסומנים באדום לפני שליחת הטופס');
+                
+                $submitButton.after($message);
+                setTimeout(() => $message.fadeOut(500, function() { $(this).remove(); }), 3000);
+            }
         }
         
         return isValid;
@@ -74,7 +98,9 @@ jQuery(document).ready(function($) {
         
         // Clear previous validation
         $group.removeClass('avp-valid avp-invalid');
-        $group.find('.avp-validation-message').remove();
+        if (window.avpSettings && window.avpSettings.showLabels) {
+            $group.find('.avp-validation-message').remove();
+        }
         
         // Skip if empty and not focused
         if (!value && !$field.is(':focus')) {
