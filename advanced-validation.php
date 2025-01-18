@@ -72,4 +72,10 @@ function avp_maybe_enqueue_scripts() {
 
 // Hook initialization
 add_action('plugins_loaded', 'avp_init', 5);
-add_action('wp_enqueue_scripts', 'avp_maybe_enqueue_scripts', 10); 
+add_action('wp_enqueue_scripts', 'avp_maybe_enqueue_scripts', 10);
+
+// Load dashboard files
+require_once __DIR__ . '/free/dashboard-free.php';
+if (\AVP\License\avp_is_pro_active()) {
+    require_once __DIR__ . '/pro/dashboard-pro.php';
+} 
