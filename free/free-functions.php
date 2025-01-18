@@ -2,6 +2,7 @@
 namespace AVP\Free;
 
 use AVP\Helpers;
+use AVP\License;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -84,7 +85,23 @@ function validate_email_ajax() {
         ));
         return;
     }
+
+    // If Pro is active, use advanced validation
+    if (License\avp_is_pro_active()) {
+        error_log('AVP: Using advanced email validation');
+        try {
+            $result = \AVP\Pro\validate_email_advanced($email);
+            error_log('AVP: Advanced validation result: ' . print_r($result, true));
+            wp_send_json_success($result);
+            return;
+        } catch (\Exception $e) {
+            error_log('AVP: Advanced validation error: ' . $e->getMessage());
+            wp_send_json_error(array('message' => 'שגיאה בבדיקת האימייל'));
+            return;
+        }
+    }
     
+    // Basic validation for free version
     // Check basic structure first
     if (!strpos($email, '@')) {
         wp_send_json_success(array(
@@ -213,6 +230,24 @@ function validate_phone_ajax() {
             return;
         }
 
+        // If Pro is active, use advanced validation
+        if (License\avp_is_pro_active()) {
+            error_log('AVP: Using advanced phone validation');
+            try {
+                $settings = Helpers\get_plugin_settings('pro');
+                $region = $settings['default_region'] ?? 'IL';
+                $result = \AVP\Pro\validate_phone_advanced($phone, $region);
+                error_log('AVP: Advanced validation result: ' . print_r($result, true));
+                wp_send_json_success($result);
+                return;
+            } catch (\Exception $e) {
+                error_log('AVP: Advanced validation error: ' . $e->getMessage());
+                wp_send_json_error(array('message' => 'שגיאה בבדיקת מספר הטלפון'));
+                return;
+            }
+        }
+
+        // Basic validation for free version
         // Basic format validation
         if (!preg_match('/^(0[5][0-9]{8}|[5][0-9]{8})$/', $phone)) {
             error_log('AVP: Invalid phone format: ' . $phone);

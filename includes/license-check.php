@@ -55,4 +55,24 @@ function avp_validate_license($license_key) {
  */
 function avp_deactivate_license() {
     return \delete_option('avp_license_key');
+}
+
+function is_pro_active() {
+    $license_key = get_option('avp_license_key', '');
+    
+    // For development/testing
+    if ($license_key === 'DEVMOCK') {
+        return true;
+    }
+    
+    // TODO: Add real license validation in the future
+    return false;
+}
+
+function get_license_key() {
+    return get_option('avp_license_key', '');
+}
+
+function save_license_key($key) {
+    return update_option('avp_license_key', sanitize_text_field($key));
 } 
