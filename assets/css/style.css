@@ -1,0 +1,63 @@
+.elementor-field-group.avp-valid .elementor-field,
+.elementor-field-group.avp-valid input {
+    border-color: #4CAF50 !important;
+    border-width: 2.5px !important;
+    background: linear-gradient(to right, rgba(76, 175, 80, 0.15), rgba(255, 255, 255, 0.05)) !important;
+}
+
+.elementor-field-group.avp-invalid .elementor-field,
+.elementor-field-group.avp-invalid input {
+    border-color: #f44336 !important;
+    border-width: 2.5px !important;
+    background: linear-gradient(to right, rgba(244, 67, 54, 0.15), rgba(255, 255, 255, 0.05)) !important;
+}
+
+/* כשעומדים עם העכבר על השדה */
+.elementor-field-group.avp-valid .elementor-field:hover,
+.elementor-field-group.avp-valid input:hover {
+    background: linear-gradient(to right, rgba(76, 175, 80, 0.15), rgba(255, 255, 255, 0)) !important;
+}
+
+.elementor-field-group.avp-invalid .elementor-field:hover,
+.elementor-field-group.avp-invalid input:hover {
+    background: linear-gradient(to right, rgba(244, 67, 54, 0.15), rgba(255, 255, 255, 0)) !important;
+}
+
+/* Validation message styling */
+.avp-validation-message {
+    font-size: 13px !important;
+    margin: 5px 0 0 0 !important;
+    padding: 4px 8px !important;
+    font-weight: 500 !important;
+    direction: rtl !important;
+    text-align: right !important;
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    position: relative !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.avp-validation-message.avp-valid {
+    color: #4CAF50 !important;
+    border-right: 3px solid #4CAF50 !important;
+}
+
+.avp-validation-message.avp-invalid {
+    color: #f44336 !important;
+    border-right: 3px solid #f44336 !important;
+}
+
+/* Message positioning */
+.elementor-field-group {
+    position: relative !important;
+    margin-bottom: 25px !important;
+}
+
+/* Fix for submit button spacing */
+.elementor-field-type-submit {
+    margin-top: 20px !important;
+} 
