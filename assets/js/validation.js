@@ -12,280 +12,98 @@ jQuery(document).ready(function($) {
         // Set CSS variables for colors
         document.documentElement.style.setProperty('--avp-error-color', window.avpSettings.errorColor);
         document.documentElement.style.setProperty('--avp-success-color', window.avpSettings.successColor);
-        
-        const styles = `
-            .avp-validation-message { display: ${window.avpSettings.showLabels ? 'block' : 'none'} !important; }
-        `;
-        
-        $('<style>')
-            .prop('type', 'text/css')
-            .html(styles)
-            .appendTo('head');
     }
     
-    // Track validation state for all fields
-    const validationState = {
-        email: false,
-        tel: false
-    };
+    let validationInProgress = false;
+    let validationTimeout = null;
     
-    // Add form submit handler
-    $(document).on('submit', 'form', function(e) {
-        const $form = $(this);
-        const hasEmail = $form.find('input[type="email"], .elementor-field-type-email input').length > 0;
-        const hasPhone = $form.find('input[type="tel"], .elementor-field-type-tel input').length > 0;
+    function validateField($field) {
+        if (validationInProgress) return;
         
-        let isValid = true;
-        
-        if (hasEmail) {
-            const $email = $form.find('input[type="email"], .elementor-field-type-email input');
-            if ($email.val() && !validationState.email) {
-                isValid = false;
-                e.preventDefault();
-                $email.focus();
-            }
-        }
-        
-        if (hasPhone) {
-            const $phone = $form.find('input[type="tel"], .elementor-field-type-tel input');
-            if ($phone.val() && !validationState.tel) {
-                isValid = false;
-                e.preventDefault();
-                $phone.focus();
-            }
-        }
-        
-        if (!isValid) {
-            const $submitButton = $form.find('.elementor-button[type="submit"]');
-            $submitButton.prop('disabled', true).css('opacity', '0.5');
+        const $form = $field.closest('form');
+        const isWooCommerce = $form.hasClass('woocommerce-checkout') || $form.hasClass('checkout');
+        const $container = isWooCommerce ? 
+            $field.closest('.form-row') : 
+            $field.closest('.elementor-field-group');
             
-            // Show message to user only if labels are enabled
-            if (window.avpSettings && window.avpSettings.showLabels) {
-                const $message = $('<div>')
-                    .addClass('avp-form-error')
-                    .css({
-                        'color': window.avpSettings.errorColor || '#f44336',
-                        'margin-top': '10px',
-                        'text-align': 'center',
-                        'font-weight': 'bold'
-                    })
-                    .text('נא לתקן את השדות המסומנים באדום לפני שליחת הטופס');
-                
-                $submitButton.after($message);
-                setTimeout(() => $message.fadeOut(500, function() { $(this).remove(); }), 3000);
-            }
+        // Remove existing messages
+        $container.find('.avp-validation-message').remove();
+        
+        let type = '';
+        // Check for email field
+        if ($field.attr('type') === 'email' || 
+            $field.closest('[class*="email"]').length || 
+            $field.attr('name') === 'billing_email') {
+            type = 'email';
+        }
+        // Check for phone field
+        else if ($field.attr('type') === 'tel' || 
+                 $field.closest('.elementor-field-type-tel').length ||
+                 $field.closest('[class*="phone"]').length || 
+                 $field.attr('name') === 'billing_phone') {
+            type = 'tel';
         }
         
-        return isValid;
-    });
-    
-    function validateField(field) {
-        const $field = $(field);
-        const $group = $field.closest('.elementor-field-group');
-        const value = $field.val();
-        let type = $field.attr('type');
+        if (!type) return;
         
-        // Fix for fields without explicit type attribute
-        if (!type) {
-            if ($field.closest('.elementor-field-type-email').length) {
-                type = 'email';
-            } else if ($field.closest('.elementor-field-type-tel').length) {
-                type = 'tel';
-            }
-        }
+        const value = $field.val().trim();
+        if (!value) return; // Don't validate empty fields
         
-        console.log('AVP: Validating field', { value, type });
+        validationInProgress = true;
         
-        // Clear previous validation
-        $group.removeClass('avp-valid avp-invalid');
-        if (window.avpSettings && window.avpSettings.showLabels) {
-            $group.find('.avp-validation-message').remove();
-        }
-        
-        // Skip if empty and not focused
-        if (!value && !$field.is(':focus')) {
-            validationState[type] = false;
-            updateSubmitButton($field);
-            return;
-        }
-        
-        // Determine endpoint and data
-        const endpoint = type === 'email' ? 'avp_validate_email' : 'avp_validate_phone';
-        const data = {
-            action: endpoint,
-            nonce: avpAjax.nonce
-        };
-        
-        // Add the value with the correct parameter name
-        if (type === 'email') {
-            data.email = value;
-        } else {
-            data.tel = value;
-        }
-        
-        console.log('AVP: Sending request', { endpoint, data });
-        
-        // Send validation request
         $.ajax({
             url: avpAjax.url,
             type: 'POST',
-            data: data,
-            timeout: 5000, // 5 second timeout
+            data: {
+                action: type === 'email' ? 'avp_validate_email' : 'avp_validate_phone',
+                [type]: value,
+                nonce: avpAjax.nonce
+            },
             success: function(response) {
-                console.log('AVP: Validation response', response);
+                if (!response.data) return;
                 
-                // Always add validation class based on response
-                const isValid = response.success && response.data && response.data.valid;
-                const messageClass = isValid ? 'avp-valid' : 'avp-invalid';
-                $group.addClass(messageClass);
+                const isValid = response.data.valid;
+                const message = response.data.message;
                 
-                // Update validation state
-                validationState[type] = isValid;
+                // Remove existing classes
+                $container.removeClass('avp-valid avp-invalid');
+                $container.find('.avp-validation-message').remove();
                 
-                // Always create message element
-                let message = '';
-                if (response.success && response.data && response.data.message) {
-                    message = response.data.message;
-                } else {
-                    message = isValid ? 'תקין' : 'פורמט לא תקין';
+                // Add new validation message
+                if (window.avpSettings && window.avpSettings.showLabels) {
+                    const $message = $('<div>')
+                        .addClass('avp-validation-message')
+                        .addClass(isValid ? 'avp-valid' : 'avp-invalid')
+                        .text(message);
+                    
+                    $field.after($message);
                 }
                 
-                const $message = $('<div>')
-                    .addClass('avp-validation-message')
-                    .addClass(messageClass)
-                    .text(message);
-                
-                // Remove any existing message
-                $group.find('.avp-validation-message').remove();
-                
-                // Add message after the input field
-                $field.after($message);
-                
-                // Update submit button state
-                updateSubmitButton($field);
-                
-                // Log for debugging
-                console.log('AVP: Message added', {
-                    message: message,
-                    valid: isValid,
-                    messageElement: $message[0]
-                });
+                // Add validation class to container
+                $container.addClass(isValid ? 'avp-valid' : 'avp-invalid');
             },
-            error: function(xhr, status, error) {
-                console.error('AVP: Validation error', { xhr, status, error });
-                
-                // Update validation state
-                validationState[type] = false;
-                
-                // Check if it's a timeout
-                const errorMessage = status === 'timeout' ? 
-                    'זמן התגובה ארוך מדי, נסה שוב' : 
-                    'בעיה בתקשורת עם השרת, נסה שוב';
-                
-                $group.addClass('avp-invalid');
-                
-                const $message = $('<div>')
-                    .addClass('avp-validation-message avp-invalid')
-                    .text(errorMessage);
-                
-                // Remove any existing message
-                $group.find('.avp-validation-message').remove();
-                
-                // Add message after the input field
-                $field.after($message);
-                
-                // Update submit button state
-                updateSubmitButton($field);
+            complete: function() {
+                validationInProgress = false;
             }
         });
     }
     
-    function updateSubmitButton($field) {
-        const $form = $field.closest('form');
-        const $submitButton = $form.find('.elementor-button[type="submit"]');
+    // Handle input changes with debounce
+    let timers = new Map();
+    const selector = 
+        'input[type="email"], input[type="tel"], ' +
+        '.elementor-field-type-email input, .elementor-field-type-tel input, ' +
+        '.elementor-field-textual[type="tel"], ' +
+        '[name="billing_email"], [name="billing_phone"]';
         
-        // Check if form has both email and phone fields
-        const hasEmail = $form.find('input[type="email"], .elementor-field-type-email input').length > 0;
-        const hasPhone = $form.find('input[type="tel"], .elementor-field-type-tel input').length > 0;
+    $(document).on('input change', selector, function() {
+        const $field = $(this);
+        const fieldId = $field.attr('name') || $field.attr('id') || $field.attr('class');
         
-        let shouldEnable = true;
-        
-        if (hasEmail) {
-            const emailValue = $form.find('input[type="email"], .elementor-field-type-email input').val();
-            if (emailValue && !validationState.email) {
-                shouldEnable = false;
-            }
-        }
-        
-        if (hasPhone) {
-            const phoneValue = $form.find('input[type="tel"], .elementor-field-type-tel input').val();
-            if (phoneValue && !validationState.tel) {
-                shouldEnable = false;
-            }
-        }
-        
-        if (shouldEnable) {
-            $submitButton.prop('disabled', false).css('opacity', '1');
-        } else {
-            $submitButton.prop('disabled', true).css('opacity', '0.5');
-        }
-        
-        console.log('AVP: Submit button updated', { 
-            shouldEnable, 
-            validationState, 
-            hasEmail, 
-            hasPhone 
-        });
-    }
-    
-    function initValidation() {
-        console.log('AVP: Initializing validation');
-        
-        // Reset validation state
-        validationState.email = false;
-        validationState.tel = false;
-        
-        // Handle input changes with debounce
-        let timer;
-        $(document).on('input change blur', 
-            '.elementor-field-group input[type="email"], ' + 
-            '.elementor-field-group input[type="tel"], ' + 
-            '.elementor-field-type-email input, ' + 
-            '.elementor-field-type-tel input, ' +
-            '.elementor-field-group .elementor-field[type="email"], ' +
-            '.elementor-field-group .elementor-field[type="tel"]',
-            function() {
-                const field = this;
-                clearTimeout(timer);
-                timer = setTimeout(function() {
-                    validateField(field);
-                }, 300); // Wait 300ms after typing stops
-        });
-        
-        // Immediate validation for existing fields with values
-        $('.elementor-field-group input[type="email"], ' +
-          '.elementor-field-group input[type="tel"], ' +
-          '.elementor-field-type-email input, ' +
-          '.elementor-field-type-tel input, ' +
-          '.elementor-field-group .elementor-field[type="email"], ' +
-          '.elementor-field-group .elementor-field[type="tel"]').each(function() {
-            if ($(this).val()) {
-                validateField(this);
-            }
-        });
-        
-        // Update submit buttons initially
-        $('form').each(function() {
-            updateSubmitButton($(this).find('input').first());
-        });
-    }
-    
-    // Initialize validation
-    initValidation();
-    
-    // Watch for popup forms and dynamic content
-    $(document).on('elementor/popup/show', function() {
-        console.log('AVP: Popup shown, reinitializing validation');
-        initValidation();
+        clearTimeout(timers.get(fieldId));
+        timers.set(fieldId, setTimeout(() => validateField($field), 500));
     });
+    
+    // Remove blur event to prevent double validation
+    $(document).off('blur', selector);
 }); 

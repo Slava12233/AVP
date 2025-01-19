@@ -48,6 +48,10 @@ function render_settings_page() {
             <?php \settings_fields('avp_free_settings'); ?>
             
             <h2><?php echo \esc_html__('Free Features', 'advanced-validation'); ?></h2>
+            <p class="description" style="margin-bottom: 20px;">
+                <?php echo \esc_html__('The free version performs basic format validation for emails and phone numbers. No license required.', 'advanced-validation'); ?>
+            </p>
+            
             <table class="form-table">
                 <!-- Visual Settings -->
                 <tr>
@@ -97,7 +101,10 @@ function render_settings_page() {
 
         <hr>
 
-        <h2><?php echo \esc_html__('License Management', 'advanced-validation'); ?></h2>
+        <h2><?php echo \esc_html__('Pro License Management', 'advanced-validation'); ?></h2>
+        <p class="description" style="margin-bottom: 20px;">
+            <?php echo \esc_html__('A valid license key is required to activate the Pro features. The free version will continue to work without a license.', 'advanced-validation'); ?>
+        </p>
         <form method="post" action="options.php">
             <?php \settings_fields('avp_license'); ?>
             <table class="form-table">
@@ -124,14 +131,161 @@ function render_settings_page() {
         </form>
 
         <?php if (!$is_pro_active): ?>
-        <div class="avp-pro-features" style="background: #f8f9fa; padding: 20px; margin-top: 20px; border-radius: 5px;">
-            <h3><?php echo \esc_html__('Pro Features (Locked)', 'advanced-validation'); ?></h3>
-            <ul style="list-style-type: disc; margin-left: 20px;">
-                <li><?php echo \esc_html__('Advanced Email Validation (MX, SPF, DKIM)', 'advanced-validation'); ?></li>
-                <li><?php echo \esc_html__('SMTP Server Verification', 'advanced-validation'); ?></li>
-                <li><?php echo \esc_html__('International Phone Number Validation', 'advanced-validation'); ?></li>
-                <li><?php echo \esc_html__('Contact Form 7 Integration', 'advanced-validation'); ?></li>
-            </ul>
+        <div class="avp-pro-features-wrapper">
+            <h2 class="avp-pro-title"><?php echo \esc_html__('Upgrade to Pro', 'advanced-validation'); ?></h2>
+            <p class="avp-pro-description">
+                <?php echo \esc_html__('While the free version checks basic format, Pro version provides advanced validation to ensure maximum data quality', 'advanced-validation'); ?>
+            </p>
+            
+            <div class="avp-pro-grid">
+                <div class="avp-pro-feature">
+                    <h4>
+                        <span class="dashicons dashicons-email-alt"></span>
+                        <?php echo \esc_html__('Advanced Email Validation', 'advanced-validation'); ?>
+                    </h4>
+                    <ul>
+                        <li>• <?php echo \esc_html__('Complete DNS verification (MX, SPF, DKIM records)', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Real-time SMTP mailbox existence check', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Detailed error reporting for each validation step', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Protection against disposable email addresses', 'advanced-validation'); ?></li>
+                    </ul>
+                </div>
+
+                <div class="avp-pro-feature">
+                    <h4>
+                        <span class="dashicons dashicons-smartphone"></span>
+                        <?php echo \esc_html__('Smart Phone Validation', 'advanced-validation'); ?>
+                    </h4>
+                    <ul>
+                        <li>• <?php echo \esc_html__('International number format validation', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Israeli carrier detection (Partner, Cellcom, etc.)', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Automatic region and provider display', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Smart country code handling', 'advanced-validation'); ?></li>
+                    </ul>
+                </div>
+
+                <div class="avp-pro-feature">
+                    <h4>
+                        <span class="dashicons dashicons-forms"></span>
+                        <?php echo \esc_html__('Extended Forms Support', 'advanced-validation'); ?>
+                    </h4>
+                    <ul>
+                        <li>• <?php echo \esc_html__('Contact Form 7 full integration', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('WPForms advanced validation', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Gravity Forms support (coming soon)', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Ninja Forms compatibility (coming soon)', 'advanced-validation'); ?></li>
+                    </ul>
+                </div>
+
+                <div class="avp-pro-feature">
+                    <h4>
+                        <span class="dashicons dashicons-admin-customizer"></span>
+                        <?php echo \esc_html__('Advanced Customization', 'advanced-validation'); ?>
+                    </h4>
+                    <ul>
+                        <li>• <?php echo \esc_html__('Fully customizable validation messages', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Advanced styling options', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Individual feature controls', 'advanced-validation'); ?></li>
+                        <li>• <?php echo \esc_html__('Custom validation rules', 'advanced-validation'); ?></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="avp-pro-cta">
+                <a href="https://yoursite.com/avp-pro" target="_blank" class="avp-pro-button">
+                    <?php echo \esc_html__('Upgrade to Pro Now', 'advanced-validation'); ?>
+                </a>
+            </div>
+
+            <style>
+                .avp-pro-features-wrapper {
+                    background: #fff;
+                    padding: 30px;
+                    margin: 20px 0;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                }
+                
+                .avp-pro-title {
+                    text-align: center;
+                    color: #1d2327;
+                    font-size: 24px;
+                    margin-bottom: 10px;
+                }
+                
+                .avp-pro-description {
+                    text-align: center;
+                    color: #50575e;
+                    font-size: 16px;
+                    margin-bottom: 30px;
+                }
+                
+                .avp-pro-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    gap: 25px;
+                    margin-bottom: 40px;
+                }
+                
+                .avp-pro-feature {
+                    background: #f8f9fa;
+                    padding: 25px;
+                    border-radius: 6px;
+                    border: 1px solid #e5e7eb;
+                }
+                
+                .avp-pro-feature h4 {
+                    color: #2271b1;
+                    font-size: 18px;
+                    margin: 0 0 15px 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                
+                .avp-pro-feature .dashicons {
+                    color: #2271b1;
+                    font-size: 22px;
+                    width: 22px;
+                    height: 22px;
+                }
+                
+                .avp-pro-feature ul {
+                    margin: 0;
+                    padding: 0;
+                    list-style: none;
+                }
+                
+                .avp-pro-feature li {
+                    color: #50575e;
+                    margin-bottom: 10px;
+                    font-size: 14px;
+                    line-height: 1.4;
+                }
+                
+                .avp-pro-cta {
+                    text-align: center;
+                    margin-top: 30px;
+                }
+                
+                .avp-pro-button {
+                    display: inline-block;
+                    background: #2271b1;
+                    color: #fff;
+                    padding: 12px 24px;
+                    border-radius: 4px;
+                    text-decoration: none;
+                    font-size: 16px;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                }
+                
+                .avp-pro-button:hover {
+                    background: #135e96;
+                    color: #fff;
+                    transform: translateY(-1px);
+                }
+            </style>
         </div>
         <?php endif; ?>
     </div>

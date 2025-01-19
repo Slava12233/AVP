@@ -4,33 +4,29 @@
     --avp-success-color: #4CAF50;
 }
 
-/* Only apply colors when highlighting is enabled */
-body.avp-highlight-enabled .elementor-field-group.avp-valid .elementor-field,
-body.avp-highlight-enabled .elementor-field-group.avp-valid input {
-    border-color: var(--avp-success-color) !important;
-    border-width: 2.5px !important;
-    background: linear-gradient(to right, color-mix(in srgb, var(--avp-success-color) 15%, transparent), rgba(255, 255, 255, 0.05)) !important;
+/* Base input styles */
+.elementor-field-group input,
+.woocommerce-checkout .form-row input {
+    transition: all 0.3s ease !important;
 }
 
-body.avp-highlight-enabled .elementor-field-group.avp-invalid .elementor-field,
-body.avp-highlight-enabled .elementor-field-group.avp-invalid input {
-    border-color: var(--avp-error-color) !important;
-    border-width: 2.5px !important;
-    background: linear-gradient(to right, color-mix(in srgb, var(--avp-error-color) 15%, transparent), rgba(255, 255, 255, 0.05)) !important;
+/* Invalid state for all inputs */
+.elementor-field-group.avp-invalid input,
+.woocommerce-checkout .form-row.avp-invalid input,
+.woocommerce-checkout p.form-row.avp-invalid .input-text {
+    border: 2px solid var(--avp-error-color) !important;
+    background-color: rgba(244, 67, 54, 0.05) !important;
 }
 
-/* כשעומדים עם העכבר על השדה */
-body.avp-highlight-enabled .elementor-field-group.avp-valid .elementor-field:hover,
-body.avp-highlight-enabled .elementor-field-group.avp-valid input:hover {
-    background: linear-gradient(to right, color-mix(in srgb, var(--avp-success-color) 15%, transparent), rgba(255, 255, 255, 0)) !important;
+/* Valid state for all inputs */
+.elementor-field-group.avp-valid input,
+.woocommerce-checkout .form-row.avp-valid input,
+.woocommerce-checkout p.form-row.avp-valid .input-text {
+    border: 2px solid var(--avp-success-color) !important;
+    background-color: rgba(76, 175, 80, 0.05) !important;
 }
 
-body.avp-highlight-enabled .elementor-field-group.avp-invalid .elementor-field:hover,
-body.avp-highlight-enabled .elementor-field-group.avp-invalid input:hover {
-    background: linear-gradient(to right, color-mix(in srgb, var(--avp-error-color) 15%, transparent), rgba(255, 255, 255, 0)) !important;
-}
-
-/* Validation message styling */
+/* Validation message base styles */
 .avp-validation-message {
     font-size: 13px !important;
     margin: 5px 0 0 0 !important;
@@ -41,29 +37,77 @@ body.avp-highlight-enabled .elementor-field-group.avp-invalid input:hover {
     width: 100% !important;
     box-sizing: border-box !important;
     border-radius: 3px !important;
-    opacity: 1 !important;
     position: relative !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    display: block !important;
+    line-height: 1.4 !important;
+    background: transparent !important;
 }
 
-.avp-validation-message.avp-valid {
-    color: var(--avp-success-color) !important;
-    border-right: 3px solid var(--avp-success-color) !important;
-}
-
+/* Error message styles */
 .avp-validation-message.avp-invalid {
     color: var(--avp-error-color) !important;
     border-right: 3px solid var(--avp-error-color) !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Success message styles */
+.avp-validation-message.avp-valid {
+    color: var(--avp-success-color) !important;
+    border-right: 3px solid var(--avp-success-color) !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Validation message icons */
+.avp-validation-message.avp-invalid::before {
+    content: "\26A0" !important;
+    display: inline-block !important;
+    margin-left: 5px !important;
+    font-family: Arial, sans-serif !important;
+}
+
+.avp-validation-message.avp-valid::before {
+    content: "\2714" !important;
+    display: inline-block !important;
+    margin-left: 5px !important;
+    font-family: Arial, sans-serif !important;
 }
 
 /* Message positioning */
-.elementor-field-group {
+.elementor-field-group,
+.woocommerce-checkout .form-row {
     position: relative !important;
     margin-bottom: 25px !important;
 }
 
-/* Fix for submit button spacing */
-.elementor-field-type-submit {
-    margin-top: 20px !important;
+/* Elementor specific styles */
+.elementor-field-group .avp-validation-message {
+    margin-top: 5px !important;
+    clear: both !important;
+    width: 100% !important;
+}
+
+/* Remove WooCommerce default styles */
+.woocommerce-checkout .woocommerce-error,
+.woocommerce-checkout .woocommerce-message {
+    background: transparent !important;
+    padding: 4px 8px !important;
+    border: none !important;
+}
+
+/* WooCommerce specific styles */
+.woocommerce-checkout .form-row .avp-validation-message {
+    display: block !important;
+    margin-top: 5px !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+}
+
+.woocommerce-checkout .form-row.avp-invalid .avp-validation-message {
+    color: var(--avp-error-color) !important;
+}
+
+.woocommerce-checkout .form-row.avp-valid .avp-validation-message {
+    color: var(--avp-success-color) !important;
 } 
