@@ -45,6 +45,10 @@ $validation_cache = [];
 function validate_email_advanced($email) {
     error_log('AVP Pro: Starting advanced email validation for: ' . $email);
 
+    // Get settings using helper function
+    $settings = Helpers\get_plugin_settings('pro');
+    error_log('AVP Pro: Current settings: ' . print_r($settings, true));
+
     // First check basic format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         error_log('AVP Pro: Basic format validation failed');
@@ -58,91 +62,152 @@ function validate_email_advanced($email) {
     $parts = explode('@', $email);
     $domain = $parts[1];
 
-    error_log('AVP Pro: Checking MX records for domain: ' . $domain);
+    $valid = true;
+    $messages = [];
 
-    // Check MX records
-    if (!getmxrr($domain, $mx_records, $mx_weights)) {
-        error_log('AVP Pro: No MX records found for domain: ' . $domain);
-        return array(
-            'valid' => false,
-            'message' => 'לא נמצא שרת מייל תקין עבור הדומיין ' . $domain
-        );
+    // Check MX records if enabled
+    if ($settings['check_mx']) {
+        error_log('AVP Pro: Checking MX records for domain: ' . $domain);
+        if (!getmxrr($domain, $mx_records, $mx_weights)) {
+            error_log('AVP Pro: No MX records found for domain: ' . $domain);
+            $valid = false;
+            $messages[] = 'לא נמצא שרת מייל תקין עבור הדומיין ' . $domain;
+        } else {
+            error_log('AVP Pro: MX records found: ' . print_r($mx_records, true));
+        }
     }
 
-    error_log('AVP Pro: MX records found: ' . print_r($mx_records, true));
+    // Additional DNS checks if enabled
+    if ($settings['check_spf']) {
+        error_log('AVP Pro: Starting SPF check for domain: ' . $domain);
+        $has_spf = checkdnsrr($domain, 'TXT');
+        $has_a = checkdnsrr($domain, 'A');
+        error_log('AVP Pro: SPF check results - SPF record: ' . ($has_spf ? 'Found' : 'Not found') . ', A record: ' . ($has_a ? 'Found' : 'Not found'));
 
-    // Additional DNS checks
-    $has_spf = checkdnsrr($domain, 'TXT');
-    $has_a = checkdnsrr($domain, 'A');
-
-    if (!$has_spf && !$has_a) {
-        error_log('AVP Pro: No SPF or A records found for domain: ' . $domain);
-        return array(
-            'valid' => false,
-            'message' => 'הדומיין ' . $domain . ' לא מוגדר כראוי לשליחת מיילים'
-        );
+        if (!$has_spf && !$has_a) {
+            error_log('AVP Pro: No SPF or A records found for domain: ' . $domain);
+            $valid = false;
+            $messages[] = 'הדומיין ' . $domain . ' לא מוגדר כראוי לשליחת מיילים';
+        } else {
+            error_log('AVP Pro: Domain has valid SPF or A records');
+        }
     }
 
-    // Try SMTP verification using PHPMailer
-    try {
-        $mail = new PHPMailer(true);
-        $mail->SMTPDebug = 0; // Disable debug output
-        $mail->isSMTP();
-        $mail->Host = $mx_records[0]; // Use first MX record
-        $mail->SMTPAuth = false; // No auth needed for verification
-        $mail->Port = 25; // Standard SMTP port
-        $mail->Timeout = 5; // 5 seconds timeout
+    // Check DKIM if enabled
+    if ($settings['check_dkim']) {
+        error_log('AVP Pro: Starting DKIM check for domain: ' . $domain);
         
-        // Set sender and recipient for verification
-        $mail->setFrom('verify@example.com');
-        $mail->addAddress($email);
-
-        // Try to verify SMTP connection and recipient
-        if (!$mail->smtpConnect()) {
-            error_log('AVP Pro: SMTP connection failed for: ' . $email);
-            return array(
-                'valid' => false,
-                'message' => 'לא ניתן להתחבר לשרת המייל'
-            );
-        }
-
-        // Get SMTP connection
-        $smtp = $mail->getSMTPInstance();
+        // Check for DKIM selector records - including Gmail's selector
+        $selectors = ['20161025', 'default', 'google', 'mail', 'key1', 'dkim'];
+        $has_dkim = false;
         
-        // Try RCPT TO command
-        if (!$smtp->mail('verify@example.com')) {
-            error_log('AVP Pro: MAIL FROM command failed');
-            return array(
-                'valid' => false,
-                'message' => 'שרת המייל דחה את הכתובת'
-            );
+        foreach ($selectors as $selector) {
+            $dkim_domain = $selector . '._domainkey.' . $domain;
+            error_log('AVP Pro: Checking DKIM record for selector: ' . $dkim_domain);
+            
+            if (checkdnsrr($dkim_domain, 'TXT')) {
+                error_log('AVP Pro: Found DKIM record for selector: ' . $selector);
+                $has_dkim = true;
+                break;
+            }
         }
-
-        if (!$smtp->recipient($email)) {
-            error_log('AVP Pro: RCPT TO command failed - email likely does not exist');
-            return array(
-                'valid' => false,
-                'message' => 'כתובת האימייל אינה קיימת'
-            );
+        
+        if (!$has_dkim) {
+            // Try checking for any _domainkey record
+            if (checkdnsrr('_domainkey.' . $domain, 'TXT')) {
+                error_log('AVP Pro: Found generic _domainkey record');
+                $has_dkim = true;
+            }
         }
-
-        // Close connection
-        $mail->smtpClose();
-
-    } catch (Exception $e) {
-        error_log('AVP Pro: SMTP verification error: ' . $e->getMessage());
-        // If SMTP check fails, we'll still accept the email if it has valid MX records
-        return array(
-            'valid' => true,
-            'message' => 'כתובת האימייל תקינה (MX בלבד)'
-        );
+        
+        if (!$has_dkim) {
+            error_log('AVP Pro: No DKIM records found for domain: ' . $domain);
+            $valid = false;
+            $messages[] = 'הדומיין ' . $domain . ' לא מוגדר עם חתימה דיגיטלית (DKIM)';
+        } else {
+            error_log('AVP Pro: Domain has valid DKIM configuration');
+        }
     }
 
-    // If we got here, all checks passed
-    return array(
-        'valid' => true,
-        'message' => 'כתובת האימייל תקינה ומאומתת'
-    );
+    // SMTP verification if enabled
+    if ($settings['verify_smtp']) {
+        error_log('AVP Pro: Starting SMTP verification for: ' . $email);
+        
+        // Get domain's mail servers (required for SMTP check)
+        if (!getmxrr($domain, $mx_records)) {
+            error_log('AVP Pro: No mail servers found for domain');
+            $result = ['valid' => false, 'message' => 'לא נמצאו שרתי דואר עבור הדומיין'];
+            error_log('AVP Pro: Returning validation result: ' . print_r($result, true));
+            return $result;
+        }
+        
+        try {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->SMTPAuth = false;
+            $mail->Host = $mx_records[0];
+            $mail->Port = 25;
+            $mail->Timeout = 5;
+            
+            error_log('AVP Pro: Attempting SMTP connection to: ' . $mx_records[0]);
+            
+            // Connect to SMTP server
+            if (!$mail->smtpConnect()) {
+                error_log('AVP Pro: Failed to connect to SMTP server');
+                $result = ['valid' => false, 'message' => 'לא ניתן להתחבר לשרת המייל'];
+                error_log('AVP Pro: Returning validation result: ' . print_r($result, true));
+                return $result;
+            }
+            
+            // Try MAIL FROM command
+            $smtp = $mail->getSMTPInstance();
+            if (!$smtp->mail("test@example.com")) {
+                error_log('AVP Pro: MAIL FROM command failed');
+                $result = ['valid' => false, 'message' => 'בדיקת SMTP נכשלה'];
+                error_log('AVP Pro: Returning validation result: ' . print_r($result, true));
+                return $result;
+            }
+            
+            // Try RCPT TO command to verify if email exists
+            if (!$smtp->recipient($email)) {
+                error_log('AVP Pro: RCPT TO command failed - email does not exist');
+                $smtp->quit();
+                $result = ['valid' => false, 'message' => 'כתובת האימייל אינה קיימת'];
+                error_log('AVP Pro: Returning validation result: ' . print_r($result, true));
+                return $result;
+            }
+            
+            error_log('AVP Pro: SMTP verification successful');
+            $smtp->quit();
+            $result = ['valid' => true, 'message' => 'כתובת האימייל תקינה ומאומתת'];
+            error_log('AVP Pro: Returning validation result: ' . print_r($result, true));
+            return $result;
+            
+        } catch (Exception $e) {
+            error_log('AVP Pro: SMTP verification error: ' . $e->getMessage());
+            $result = ['valid' => false, 'message' => 'שגיאה באימות SMTP: ' . $e->getMessage()];
+            error_log('AVP Pro: Returning validation result: ' . print_r($result, true));
+            return $result;
+        }
+    }
+
+    // Prepare final result
+    if ($valid && empty($messages)) {
+        $message = 'כתובת האימייל תקינה';
+        if ($settings['verify_smtp']) {
+            $message .= ' ומאומתת';
+        }
+    } else {
+        $message = implode(', ', $messages);
+    }
+
+    $result = [
+        'valid' => $valid === true ? true : false,
+        'message' => $message
+    ];
+
+    error_log('AVP Pro: Final validation result: ' . print_r($result, true));
+    return $result;
 }
 
 /**
@@ -295,21 +360,21 @@ function validate_elementor_form($record, $ajax_handler) {
                     $validation = validate_email_advanced($value);
                     error_log('AVP Pro: Email validation result: ' . print_r($validation, true));
                     
-                    // Clear any existing errors first
+                    // Always remove any existing errors first
                     $ajax_handler->remove_error($id);
                     
-                    // Only add error if validation failed
+                    // Check if validation failed
                     if (!$validation['valid']) {
+                        error_log('AVP Pro: Adding error for field ' . $id . ': ' . $validation['message']);
                         $ajax_handler->add_error($id, $validation['message']);
-                        error_log('AVP Pro: Added email error: ' . $validation['message']);
-                    } else {
-                        // If validation passed, add success message
-                        $ajax_handler->add_success_message($validation['message']);
-                        error_log('AVP Pro: Added success message: ' . $validation['message']);
+                        $record->set_status('invalid', 1);
+                        error_log('AVP Pro: Set form status to invalid');
                     }
                 } catch (\Exception $e) {
                     error_log('AVP Pro: Email validation error: ' . $e->getMessage());
                     $ajax_handler->add_error($id, 'שגיאה בבדיקת כתובת האימייל');
+                    $record->set_status('invalid', 1);
+                    error_log('AVP Pro: Set form status to invalid due to error');
                 }
             }
             

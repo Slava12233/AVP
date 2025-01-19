@@ -106,9 +106,10 @@ function get_plugin_settings($type = 'free') {
         ],
         'pro' => [
             'check_mx' => true,
-            'check_spf' => true,
+            'check_spf' => false,
             'check_dkim' => false,
-            'verify_smtp' => false
+            'verify_smtp' => false,
+            'default_region' => 'IL'
         ]
     ];
 
