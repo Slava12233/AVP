@@ -110,4 +110,16 @@
 
 .woocommerce-checkout .form-row.avp-valid .avp-validation-message {
     color: var(--avp-success-color) !important;
+}
+
+.elementor-widget-woocommerce-checkout-page .woocommerce form .form-row.avp-invalid input,
+.elementor-widget-woocommerce-checkout-page .woocommerce form .form-row.avp-invalid .input-text {
+    border-color: var(--avp-error-color) !important;
+    background-color: color-mix(in srgb, var(--avp-error-color) 15%, transparent) !important;
+}
+
+.elementor-widget-woocommerce-checkout-page .woocommerce form .form-row.avp-valid input,
+.elementor-widget-woocommerce-checkout-page .woocommerce form .form-row.avp-valid .input-text {
+    border-color: var(--avp-success-color) !important;
+    background-color: color-mix(in srgb, var(--avp-success-color) 15%, transparent) !important;
 } 
