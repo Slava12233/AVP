@@ -13,6 +13,29 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Initialize hooks immediately
+function init_pro_validation() {
+    error_log('AVP Pro: Initializing validation hooks');
+    
+    // Remove free version hooks first
+    remove_action('elementor_pro/forms/validation', 'AVP\\Free\\validate_elementor_form', 20);
+    
+    // Add our pro hooks
+    add_action('elementor_pro/forms/validation', __NAMESPACE__ . '\\validate_elementor_form', 10, 2);
+    add_filter('wpcf7_validate_email', __NAMESPACE__ . '\\validate_cf7_email', 20, 2);
+    add_filter('wpcf7_validate_email*', __NAMESPACE__ . '\\validate_cf7_email', 20, 2);
+    add_filter('wpcf7_validate_tel', __NAMESPACE__ . '\\validate_cf7_phone', 20, 2);
+    add_filter('wpcf7_validate_tel*', __NAMESPACE__ . '\\validate_cf7_phone', 20, 2);
+    
+    error_log('AVP Pro: Hooks initialized');
+}
+
+// Call initialization on plugins_loaded to ensure all plugins are loaded
+add_action('plugins_loaded', __NAMESPACE__ . '\\init_pro_validation');
+
+// Also call on init with high priority
+add_action('init', __NAMESPACE__ . '\\init_pro_validation', 1);
+
 // Static cache
 $validation_cache = [];
 
@@ -20,66 +43,106 @@ $validation_cache = [];
  * Advanced email validation with optimized SMTP check
  */
 function validate_email_advanced($email) {
-    try {
-        // Basic validation first
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return ['valid' => false, 'message' => 'כתובת המייל לא תקינה'];
-        }
+    error_log('AVP Pro: Starting advanced email validation for: ' . $email);
 
-        // Get domain from email
-        $domain = substr(strrchr($email, "@"), 1);
-        
-        // Check MX records
-        if (!getmxrr($domain, $mx_records)) {
-            return ['valid' => false, 'message' => 'לא נמצא שרת מייל תקין'];
-        }
-
-        // Initialize PHPMailer
-        $mail = new PHPMailer(true);
-        $mail->SMTPDebug = 3;
-        $mail->isSMTP();
-        $mail->Host = $mx_records[0];
-        $mail->Port = 25;
-        $mail->Timeout = 5;
-
-        // Try SMTP connection
-        try {
-            $smtp = $mail->getSMTPInstance();
-            if (!$smtp->connect($mail->Host, $mail->Port)) {
-                throw new Exception('Connection failed');
-            }
-            
-            if (!$smtp->hello(gethostname())) {
-                $smtp->quit();
-                throw new Exception('HELO failed');
-            }
-            
-            // Try MAIL FROM
-            if (!$smtp->mail("test@example.com")) {
-                $smtp->quit();
-                throw new Exception('MAIL FROM failed');
-            }
-            
-            // Try RCPT TO
-            if (!$smtp->recipient($email)) {
-                $smtp->quit();
-                return ['valid' => false, 'message' => 'כתובת המייל לא קיימת'];
-            }
-            
-            $smtp->quit();
-            return ['valid' => true, 'message' => 'כתובת המייל תקינה'];
-            
-        } catch (Exception $e) {
-            if ($smtp && $smtp->connected()) {
-                $smtp->quit();
-            }
-            // If SMTP check fails but MX exists, consider it valid
-            return ['valid' => false, 'message' => 'לא ניתן לאמת את כתובת המייל'];
-        }
-        
-    } catch (Exception $e) {
-        return ['valid' => false, 'message' => 'שגיאה בבדיקת המייל'];
+    // First check basic format
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        error_log('AVP Pro: Basic format validation failed');
+        return array(
+            'valid' => false,
+            'message' => 'פורמט לא תקין - כתובת האימייל אינה תקינה'
+        );
     }
+
+    // Split email into parts
+    $parts = explode('@', $email);
+    $domain = $parts[1];
+
+    error_log('AVP Pro: Checking MX records for domain: ' . $domain);
+
+    // Check MX records
+    if (!getmxrr($domain, $mx_records, $mx_weights)) {
+        error_log('AVP Pro: No MX records found for domain: ' . $domain);
+        return array(
+            'valid' => false,
+            'message' => 'לא נמצא שרת מייל תקין עבור הדומיין ' . $domain
+        );
+    }
+
+    error_log('AVP Pro: MX records found: ' . print_r($mx_records, true));
+
+    // Additional DNS checks
+    $has_spf = checkdnsrr($domain, 'TXT');
+    $has_a = checkdnsrr($domain, 'A');
+
+    if (!$has_spf && !$has_a) {
+        error_log('AVP Pro: No SPF or A records found for domain: ' . $domain);
+        return array(
+            'valid' => false,
+            'message' => 'הדומיין ' . $domain . ' לא מוגדר כראוי לשליחת מיילים'
+        );
+    }
+
+    // Try SMTP verification using PHPMailer
+    try {
+        $mail = new PHPMailer(true);
+        $mail->SMTPDebug = 0; // Disable debug output
+        $mail->isSMTP();
+        $mail->Host = $mx_records[0]; // Use first MX record
+        $mail->SMTPAuth = false; // No auth needed for verification
+        $mail->Port = 25; // Standard SMTP port
+        $mail->Timeout = 5; // 5 seconds timeout
+        
+        // Set sender and recipient for verification
+        $mail->setFrom('verify@example.com');
+        $mail->addAddress($email);
+
+        // Try to verify SMTP connection and recipient
+        if (!$mail->smtpConnect()) {
+            error_log('AVP Pro: SMTP connection failed for: ' . $email);
+            return array(
+                'valid' => false,
+                'message' => 'לא ניתן להתחבר לשרת המייל'
+            );
+        }
+
+        // Get SMTP connection
+        $smtp = $mail->getSMTPInstance();
+        
+        // Try RCPT TO command
+        if (!$smtp->mail('verify@example.com')) {
+            error_log('AVP Pro: MAIL FROM command failed');
+            return array(
+                'valid' => false,
+                'message' => 'שרת המייל דחה את הכתובת'
+            );
+        }
+
+        if (!$smtp->recipient($email)) {
+            error_log('AVP Pro: RCPT TO command failed - email likely does not exist');
+            return array(
+                'valid' => false,
+                'message' => 'כתובת האימייל אינה קיימת'
+            );
+        }
+
+        // Close connection
+        $mail->smtpClose();
+
+    } catch (Exception $e) {
+        error_log('AVP Pro: SMTP verification error: ' . $e->getMessage());
+        // If SMTP check fails, we'll still accept the email if it has valid MX records
+        return array(
+            'valid' => true,
+            'message' => 'כתובת האימייל תקינה (MX בלבד)'
+        );
+    }
+
+    // If we got here, all checks passed
+    return array(
+        'valid' => true,
+        'message' => 'כתובת האימייל תקינה ומאומתת'
+    );
 }
 
 /**
@@ -173,13 +236,6 @@ function validate_phone_advanced($phone, $region = 'IL') {
     }
 }
 
-// Hook into form plugins
-add_filter('wpcf7_validate_email', __NAMESPACE__ . '\\validate_cf7_email', 20, 2);
-add_filter('wpcf7_validate_email*', __NAMESPACE__ . '\\validate_cf7_email', 20, 2);
-add_filter('wpcf7_validate_tel', __NAMESPACE__ . '\\validate_cf7_phone', 20, 2);
-add_filter('wpcf7_validate_tel*', __NAMESPACE__ . '\\validate_cf7_phone', 20, 2);
-add_action('elementor_pro/forms/validation', __NAMESPACE__ . '\\validate_elementor_form', 10, 2);
-
 /**
  * Contact Form 7 email validation
  */
@@ -216,25 +272,72 @@ function validate_cf7_phone($result, $tag) {
  * Elementor form validation
  */
 function validate_elementor_form($record, $ajax_handler) {
-    $fields = $record->get_field(['id', 'value', 'type']);
+    error_log('AVP Pro: Elementor validation started');
     
-    foreach ($fields as $field) {
-        $id = $field['id'];
-        $value = $field['value'];
-        $type = $field['type'];
+    try {
+        $fields = $record->get_field(['id', 'value', 'type']);
         
-        if ($type === 'email' && !empty($value)) {
-            $validation = validate_email_advanced($value);
-            if (!$validation['valid']) {
-                $ajax_handler->add_error($id, $validation['message']);
+        foreach ($fields as $field) {
+            if (!isset($field['id'], $field['value'], $field['type'])) {
+                error_log('AVP Pro: Invalid field structure: ' . print_r($field, true));
+                continue;
+            }
+
+            $id = $field['id'];
+            $value = $field['value'];
+            $type = $field['type'];
+            
+            error_log("AVP Pro: Processing field - ID: $id, Type: $type, Value: $value");
+            
+            if ($type === 'email' && !empty($value)) {
+                error_log('AVP Pro: Validating email field: ' . $value);
+                try {
+                    $validation = validate_email_advanced($value);
+                    error_log('AVP Pro: Email validation result: ' . print_r($validation, true));
+                    
+                    // Clear any existing errors first
+                    $ajax_handler->remove_error($id);
+                    
+                    // Only add error if validation failed
+                    if (!$validation['valid']) {
+                        $ajax_handler->add_error($id, $validation['message']);
+                        error_log('AVP Pro: Added email error: ' . $validation['message']);
+                    } else {
+                        // If validation passed, add success message
+                        $ajax_handler->add_success_message($validation['message']);
+                        error_log('AVP Pro: Added success message: ' . $validation['message']);
+                    }
+                } catch (\Exception $e) {
+                    error_log('AVP Pro: Email validation error: ' . $e->getMessage());
+                    $ajax_handler->add_error($id, 'שגיאה בבדיקת כתובת האימייל');
+                }
+            }
+            
+            if ($type === 'tel' && !empty($value)) {
+                error_log('AVP Pro: Validating phone field: ' . $value);
+                try {
+                    $validation = validate_phone_advanced($value);
+                    error_log('AVP Pro: Phone validation result: ' . print_r($validation, true));
+                    
+                    // Clear any existing errors first
+                    $ajax_handler->remove_error($id);
+                    
+                    // Only add error if validation failed
+                    if (!$validation['valid']) {
+                        $ajax_handler->add_error($id, $validation['message']);
+                        error_log('AVP Pro: Added phone error: ' . $validation['message']);
+                    } else {
+                        // If validation passed, add success message
+                        $ajax_handler->add_success_message($validation['message']);
+                        error_log('AVP Pro: Added success message: ' . $validation['message']);
+                    }
+                } catch (\Exception $e) {
+                    error_log('AVP Pro: Phone validation error: ' . $e->getMessage());
+                    $ajax_handler->add_error($id, 'שגיאה בבדיקת מספר הטלפון');
+                }
             }
         }
-        
-        if ($type === 'tel' && !empty($value)) {
-            $validation = validate_phone_advanced($value);
-            if (!$validation['valid']) {
-                $ajax_handler->add_error($id, $validation['message']);
-            }
-        }
+    } catch (\Exception $e) {
+        error_log('AVP Pro: General validation error: ' . $e->getMessage());
     }
 } 

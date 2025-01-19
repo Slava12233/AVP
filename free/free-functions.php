@@ -17,13 +17,20 @@ function init() {
     error_log('AVP: Free init called');
     
     // Add AJAX endpoints
-    add_action('wp_ajax_avp_validate_email', __NAMESPACE__ . '\\validate_email_ajax');
-    add_action('wp_ajax_nopriv_avp_validate_email', __NAMESPACE__ . '\\validate_email_ajax');
+    add_action('wp_ajax_avp_validate_email', __NAMESPACE__ . '\\handle_email_validation');
+    add_action('wp_ajax_nopriv_avp_validate_email', __NAMESPACE__ . '\\handle_email_validation');
     add_action('wp_ajax_avp_validate_phone', __NAMESPACE__ . '\\validate_phone_ajax');
     add_action('wp_ajax_nopriv_avp_validate_phone', __NAMESPACE__ . '\\validate_phone_ajax');
     
-    // Add form validation hooks - use only one hook per type
-    add_action('elementor_pro/forms/validation', __NAMESPACE__ . '\\validate_elementor_form', 10, 2);
+    // Add form validation hooks only if pro is not active
+    if (!License\avp_is_pro_active()) {
+        error_log('AVP: Adding free version Elementor validation');
+        add_action('elementor_pro/forms/validation', __NAMESPACE__ . '\\validate_elementor_form', 20, 2);
+    } else {
+        error_log('AVP: Pro version active, skipping free validation hooks');
+        // Remove our validation if it was added before
+        remove_action('elementor_pro/forms/validation', __NAMESPACE__ . '\\validate_elementor_form', 20);
+    }
     
     // Add frontend scripts and styles
     add_action('wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue_validation_scripts');
@@ -68,71 +75,36 @@ function enqueue_validation_scripts() {
 /**
  * AJAX endpoint for email validation
  */
-function validate_email_ajax() {
+function handle_email_validation() {
     check_ajax_referer('avp_validation_nonce', 'nonce');
     
-    if (!isset($_POST['email'])) {
-        wp_send_json_error(array('message' => 'לא סופקה כתובת אימייל'));
-    }
-    
-    $email = sanitize_email($_POST['email']);
-    
-    // Check if email is empty
+    $email = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
     if (empty($email)) {
-        wp_send_json_success(array(
-            'valid' => false,
-            'message' => 'נדרשת כתובת אימייל'
-        ));
+        wp_send_json_success(['valid' => false, 'message' => 'נדרשת כתובת אימייל']);
         return;
     }
     
-    // Split email into parts
-    $parts = explode('@', $email);
-    if (count($parts) !== 2) {
-        wp_send_json_success(array(
-            'valid' => false,
-            'message' => 'פורמט לא תקין - חסר @ בכתובת האימייל'
-        ));
-        return;
+    // If Pro is active, use advanced validation
+    if (License\avp_is_pro_active()) {
+        error_log('AVP: Using advanced email validation');
+        try {
+            $result = \AVP\Pro\validate_email_advanced($email);
+            error_log('AVP: Advanced email validation result: ' . print_r($result, true));
+            wp_send_json_success($result);
+            return;
+        } catch (\Exception $e) {
+            error_log('AVP: Advanced email validation error: ' . $e->getMessage());
+            wp_send_json_error(array('message' => 'שגיאה בבדיקת כתובת האימייל'));
+            return;
+        }
     }
     
-    $domain = $parts[1];
-    
-    // Check if domain has a dot
-    if (strpos($domain, '.') === false) {
-        wp_send_json_success(array(
-            'valid' => false,
-            'message' => 'פורמט לא תקין - חסרה נקודה וסיומת בכתובת האימייל (לדוגמה: .com)'
-        ));
-        return;
-    }
-    
-    // Check if domain has a valid TLD
-    $domain_parts = explode('.', $domain);
-    $tld = end($domain_parts);
-    
-    if (empty($tld) || strlen($tld) < 2) {
-        wp_send_json_success(array(
-            'valid' => false,
-            'message' => 'פורמט לא תקין - חסרה סיומת בכתובת האימייל (לדוגמה: .com)'
-        ));
-        return;
-    }
-    
-    // If all checks pass, validate using WordPress function
-    if (!is_email($email)) {
-        wp_send_json_success(array(
-            'valid' => false,
-            'message' => 'פורמט לא תקין - כתובת האימייל אינה תקינה'
-        ));
-        return;
-    }
-    
-    wp_send_json_success(array(
-        'valid' => true,
-        'message' => 'כתובת האימייל תקינה'
-    ));
+    // Basic validation for free version
+    $result = validate_email($email);
+    wp_send_json_success($result);
 }
+add_action('wp_ajax_avp_validate_email', __NAMESPACE__ . '\\handle_email_validation');
+add_action('wp_ajax_nopriv_avp_validate_email', __NAMESPACE__ . '\\handle_email_validation');
 
 /**
  * AJAX endpoint for phone validation
@@ -234,6 +206,23 @@ function validate_elementor_form($record, $ajax_handler) {
             
             if ($type === 'email' && $settings['validate_email']) {
                 if (!empty($value)) {
+                    // If Pro is active, use advanced validation
+                    if (License\avp_is_pro_active()) {
+                        error_log('AVP: Using advanced email validation for Elementor');
+                        try {
+                            $validation = \AVP\Pro\validate_email_advanced($value);
+                            if (!$validation['valid']) {
+                                $ajax_handler->add_error($id, $validation['message']);
+                            }
+                            continue;
+                        } catch (\Exception $e) {
+                            error_log('AVP: Advanced email validation error: ' . $e->getMessage());
+                            $ajax_handler->add_error($id, 'שגיאה בבדיקת כתובת האימייל');
+                            continue;
+                        }
+                    }
+                    
+                    // Basic validation for free version
                     // Check basic structure first
                     if (!strpos($value, '@')) {
                         $ajax_handler->add_error($id, 'פורמט לא תקין - חסר @ בכתובת האימייל');
@@ -546,3 +535,54 @@ function avp_add_wc_field_validation_classes() {
     <?php
 }
 add_action('woocommerce_after_checkout_form', __NAMESPACE__ . '\\avp_add_wc_field_validation_classes'); 
+
+function validate_email($email) {
+    // Check if pro version is active
+    if (function_exists('\\AVP\\Pro\\validate_email_advanced')) {
+        return \AVP\Pro\validate_email_advanced($email);
+    }
+
+    // Free version validation
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return array(
+            'valid' => false,
+            'message' => 'פורמט לא תקין - כתובת האימייל אינה תקינה'
+        );
+    }
+
+    // Split email into parts
+    $parts = explode('@', $email);
+    if (count($parts) !== 2) {
+        return array(
+            'valid' => false,
+            'message' => 'פורמט לא תקין - חסר @ בכתובת האימייל'
+        );
+    }
+
+    $domain = $parts[1];
+
+    // Check if domain has a dot
+    if (strpos($domain, '.') === false) {
+        return array(
+            'valid' => false,
+            'message' => 'פורמט לא תקין - חסרה נקודה וסיומת בכתובת האימייל (לדוגמה: .com)'
+        );
+    }
+
+    // Check if domain has a valid TLD
+    $domain_parts = explode('.', $domain);
+    $tld = end($domain_parts);
+
+    if (empty($tld) || strlen($tld) < 2) {
+        return array(
+            'valid' => false,
+            'message' => 'פורמט לא תקין - חסרה סיומת בכתובת האימייל (לדוגמה: .com)'
+        );
+    }
+
+    // If all checks pass
+    return array(
+        'valid' => true,
+        'message' => 'כתובת האימייל תקינה'
+    );
+} 
