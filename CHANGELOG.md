@@ -1,5 +1,25 @@
 # Advanced Validation Plugin - Changelog
 
+## Version 1.1.1 (2024-01-19)
+
+### Dashboard Improvements
+- Added detailed descriptions for all validation checks in Pro dashboard
+- Enhanced email validation settings descriptions (MX, SPF, DKIM, SMTP)
+- Added comprehensive phone validation feature explanations
+- Improved clarity of settings descriptions for better user understanding
+
+### Phone Validation Documentation
+- Added detailed explanation of libphonenumber integration
+- Documented carrier detection for Israeli numbers (Partner, Cellcom)
+- Added clear description of phone number type detection (mobile, landline)
+- Enhanced region selection documentation with country-specific formats
+
+### Settings Organization
+- Improved organization of Pro settings page
+- Added clear separation between email and phone validation sections
+- Enhanced visual presentation of feature descriptions
+- Added tooltips and help text for better user guidance
+
 ## Version 1.1.0 (2024-01-19)
 
 ### Email Validation Enhancements

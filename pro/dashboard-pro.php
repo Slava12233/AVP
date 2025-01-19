@@ -122,8 +122,22 @@ function render_settings_page() {
                             </option>
                         </select>
                         <p class="description">
-                            <?php echo \esc_html__('Default region for phone number parsing when no country code is provided.', 'advanced-validation'); ?>
+                            <?php echo \esc_html__('Default region for phone number parsing when no country code is provided. This setting helps validate local phone numbers correctly based on the selected country\'s format.', 'advanced-validation'); ?>
                         </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php echo \esc_html__('Phone Validation Features', 'advanced-validation'); ?></th>
+                    <td>
+                        <p class="description" style="margin-bottom: 15px;">
+                            <?php echo \esc_html__('The Pro version includes advanced phone validation features:', 'advanced-validation'); ?>
+                        </p>
+                        <ul style="list-style: disc; margin-left: 20px;">
+                            <li><?php echo \esc_html__('International number format validation using Google\'s libphonenumber library', 'advanced-validation'); ?></li>
+                            <li><?php echo \esc_html__('Automatic detection of phone number type (mobile, landline, etc.)', 'advanced-validation'); ?></li>
+                            <li><?php echo \esc_html__('Carrier detection for supported regions (e.g., Partner, Cellcom for IL)', 'advanced-validation'); ?></li>
+                            <li><?php echo \esc_html__('Smart handling of country codes and local formats', 'advanced-validation'); ?></li>
+                        </ul>
                     </td>
                 </tr>
             </table>
