@@ -43,6 +43,12 @@ function render_settings_page() {
         <form method="post" action="options.php">
             <?php \settings_fields('avp_pro_settings'); ?>
             
+            <!-- Add hidden fields for all checkboxes to ensure they are saved when unchecked -->
+            <input type="hidden" name="avp_pro_settings[check_mx]" value="0">
+            <input type="hidden" name="avp_pro_settings[check_spf]" value="0">
+            <input type="hidden" name="avp_pro_settings[check_dkim]" value="0">
+            <input type="hidden" name="avp_pro_settings[verify_smtp]" value="0">
+            
             <h2><?php echo \esc_html__('Email Validation Settings', 'advanced-validation'); ?></h2>
             <table class="form-table">
                 <tr>
@@ -53,6 +59,9 @@ function render_settings_page() {
                                 value="1" <?php \checked($settings['check_mx']); ?>>
                             <?php echo \esc_html__('Verify domain has valid mail server', 'advanced-validation'); ?>
                         </label>
+                        <p class="description">
+                            <?php echo \esc_html__('Checks if the email domain has valid mail servers configured to receive emails. This is the most basic check to ensure the domain can handle email.', 'advanced-validation'); ?>
+                        </p>
                     </td>
                 </tr>
                 <tr>
@@ -63,6 +72,9 @@ function render_settings_page() {
                                 value="1" <?php \checked($settings['check_spf']); ?>>
                             <?php echo \esc_html__('Check for SPF record existence', 'advanced-validation'); ?>
                         </label>
+                        <p class="description">
+                            <?php echo \esc_html__('Verifies if the domain has SPF (Sender Policy Framework) records configured. This helps identify if the domain is properly set up for sending emails and reduces the chance of spam.', 'advanced-validation'); ?>
+                        </p>
                     </td>
                 </tr>
                 <tr>
@@ -73,6 +85,9 @@ function render_settings_page() {
                                 value="1" <?php \checked($settings['check_dkim']); ?>>
                             <?php echo \esc_html__('Verify DKIM record (if available)', 'advanced-validation'); ?>
                         </label>
+                        <p class="description">
+                            <?php echo \esc_html__('Checks for DKIM (DomainKeys Identified Mail) records which provide a digital signature for emails. This verifies the authenticity of the domain and helps prevent email spoofing.', 'advanced-validation'); ?>
+                        </p>
                     </td>
                 </tr>
                 <tr>
@@ -84,7 +99,7 @@ function render_settings_page() {
                             <?php echo \esc_html__('Attempt SMTP connection test', 'advanced-validation'); ?>
                         </label>
                         <p class="description">
-                            <?php echo \esc_html__('Warning: This may slow down validation and some servers might block SMTP connections.', 'advanced-validation'); ?>
+                            <?php echo \esc_html__('Attempts to connect to the mail server and verify if the email address actually exists. This is the most thorough check but may be slower and some servers might block SMTP connections.', 'advanced-validation'); ?>
                         </p>
                     </td>
                 </tr>
