@@ -77,16 +77,25 @@ function render_settings_page() {
                 <tr>
                     <th scope="row"><?php echo \esc_html__('Default Phone Region', 'advanced-validation'); ?></th>
                     <td>
-                        <select name="avp_free_settings[default_region]" id="avp_default_region">
-                            <option value="IL" <?php selected($settings['default_region'] ?? 'IL', 'IL'); ?>>Israel (IL)</option>
-                            <option value="US" <?php selected($settings['default_region'] ?? 'IL', 'US'); ?>>United States (US)</option>
-                            <option value="GB" <?php selected($settings['default_region'] ?? 'IL', 'GB'); ?>>United Kingdom (GB)</option>
-                            <option value="CA" <?php selected($settings['default_region'] ?? 'IL', 'CA'); ?>>Canada (CA)</option>
-                            <option value="AU" <?php selected($settings['default_region'] ?? 'IL', 'AU'); ?>>Australia (AU)</option>
-                        </select>
-                        <p class="description">
-                            <?php echo \esc_html__('Select the default region for phone number validation', 'advanced-validation'); ?>
-                        </p>
+                        <?php if (\AVP\License\avp_is_pro_active()): ?>
+                            <p class="description" style="color: #666;">
+                                <?php echo \esc_html__('Phone region settings are managed in the Pro version settings.', 'advanced-validation'); ?>
+                                <a href="<?php echo \esc_url(\admin_url('admin.php?page=avp-pro-settings')); ?>">
+                                    <?php echo \esc_html__('Go to Pro Settings', 'advanced-validation'); ?>
+                                </a>
+                            </p>
+                        <?php else: ?>
+                            <select name="avp_free_settings[default_region]" id="avp_default_region">
+                                <option value="IL" <?php \selected($settings['default_region'] ?? 'IL', 'IL'); ?>>Israel (IL)</option>
+                                <option value="US" <?php \selected($settings['default_region'] ?? 'IL', 'US'); ?>>United States (US)</option>
+                                <option value="GB" <?php \selected($settings['default_region'] ?? 'IL', 'GB'); ?>>United Kingdom (GB)</option>
+                                <option value="CA" <?php \selected($settings['default_region'] ?? 'IL', 'CA'); ?>>Canada (CA)</option>
+                                <option value="AU" <?php \selected($settings['default_region'] ?? 'IL', 'AU'); ?>>Australia (AU)</option>
+                            </select>
+                            <p class="description">
+                                <?php echo \esc_html__('Select the default region for phone number validation', 'advanced-validation'); ?>
+                            </p>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <tr>
