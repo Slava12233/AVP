@@ -111,18 +111,42 @@ function render_settings_page() {
                     <th scope="row"><?php echo \esc_html__('Default Region', 'advanced-validation'); ?></th>
                     <td>
                         <select name="avp_pro_settings[default_region]">
-                            <option value="US" <?php \selected($settings['default_region'] ?? 'US', 'US'); ?>>
+                            <!-- Free Version Countries -->
+                            <option value="IL" <?php \selected($settings['default_region'] ?? 'IL', 'IL'); ?>>
+                                <?php echo \esc_html__('Israel (IL)', 'advanced-validation'); ?>
+                            </option>
+                            <option value="US" <?php \selected($settings['default_region'] ?? 'IL', 'US'); ?>>
                                 <?php echo \esc_html__('United States (US)', 'advanced-validation'); ?>
                             </option>
-                            <option value="GB" <?php \selected($settings['default_region'] ?? 'US', 'GB'); ?>>
+                            <option value="GB" <?php \selected($settings['default_region'] ?? 'IL', 'GB'); ?>>
                                 <?php echo \esc_html__('United Kingdom (GB)', 'advanced-validation'); ?>
                             </option>
-                            <option value="IL" <?php \selected($settings['default_region'] ?? 'US', 'IL'); ?>>
-                                <?php echo \esc_html__('Israel (IL)', 'advanced-validation'); ?>
+                            <option value="CA" <?php \selected($settings['default_region'] ?? 'IL', 'CA'); ?>>
+                                <?php echo \esc_html__('Canada (CA)', 'advanced-validation'); ?>
+                            </option>
+                            <option value="AU" <?php \selected($settings['default_region'] ?? 'IL', 'AU'); ?>>
+                                <?php echo \esc_html__('Australia (AU)', 'advanced-validation'); ?>
+                            </option>
+
+                            <!-- Pro Version Additional Countries -->
+                            <option value="FR" <?php \selected($settings['default_region'] ?? 'IL', 'FR'); ?>>
+                                <?php echo \esc_html__('France (FR)', 'advanced-validation'); ?>
+                            </option>
+                            <option value="DE" <?php \selected($settings['default_region'] ?? 'IL', 'DE'); ?>>
+                                <?php echo \esc_html__('Germany (DE)', 'advanced-validation'); ?>
+                            </option>
+                            <option value="IT" <?php \selected($settings['default_region'] ?? 'IL', 'IT'); ?>>
+                                <?php echo \esc_html__('Italy (IT)', 'advanced-validation'); ?>
+                            </option>
+                            <option value="ES" <?php \selected($settings['default_region'] ?? 'IL', 'ES'); ?>>
+                                <?php echo \esc_html__('Spain (ES)', 'advanced-validation'); ?>
+                            </option>
+                            <option value="JP" <?php \selected($settings['default_region'] ?? 'IL', 'JP'); ?>>
+                                <?php echo \esc_html__('Japan (JP)', 'advanced-validation'); ?>
                             </option>
                         </select>
                         <p class="description">
-                            <?php echo \esc_html__('Default region for phone number parsing when no country code is provided. This setting helps validate local phone numbers correctly based on the selected country\'s format.', 'advanced-validation'); ?>
+                            <?php echo \esc_html__('Default region for phone number parsing when no country code is provided. Pro version includes additional countries.', 'advanced-validation'); ?>
                         </p>
                     </td>
                 </tr>
@@ -135,8 +159,19 @@ function render_settings_page() {
                         <ul style="list-style: disc; margin-left: 20px;">
                             <li><?php echo \esc_html__('International number format validation using Google\'s libphonenumber library', 'advanced-validation'); ?></li>
                             <li><?php echo \esc_html__('Automatic detection of phone number type (mobile, landline, etc.)', 'advanced-validation'); ?></li>
-                            <li><?php echo \esc_html__('Carrier detection for supported regions (e.g., Partner, Cellcom for IL)', 'advanced-validation'); ?></li>
+                            <li>
+                                <?php echo \esc_html__('Carrier detection for all major providers:', 'advanced-validation'); ?>
+                                <ul style="list-style: circle; margin-left: 20px; margin-top: 5px;">
+                                    <li><?php echo \esc_html__('Israel: Partner, Cellcom, Pelephone, Hot Mobile, etc.', 'advanced-validation'); ?></li>
+                                    <li><?php echo \esc_html__('USA: AT&T, Verizon, T-Mobile, Sprint', 'advanced-validation'); ?></li>
+                                    <li><?php echo \esc_html__('UK: EE, Vodafone, O2, Three', 'advanced-validation'); ?></li>
+                                    <li><?php echo \esc_html__('Australia: Telstra, Optus, Vodafone', 'advanced-validation'); ?></li>
+                                    <li><?php echo \esc_html__('France: Orange, SFR, Bouygues, Free Mobile', 'advanced-validation'); ?></li>
+                                    <li><?php echo \esc_html__('Germany: Deutsche Telekom, O2, E-Plus', 'advanced-validation'); ?></li>
+                                </ul>
+                            </li>
                             <li><?php echo \esc_html__('Smart handling of country codes and local formats', 'advanced-validation'); ?></li>
+                            <li><?php echo \esc_html__('Region-specific validation rules and area code detection', 'advanced-validation'); ?></li>
                         </ul>
                     </td>
                 </tr>

@@ -681,4 +681,72 @@ function validate_email($email) {
         'valid' => true,
         'message' => 'כתובת האימייל תקינה'
     );
+}
+
+function validate_phone($phone) {
+    // If pro version is active, skip free validation
+    if (\AVP\License\avp_is_pro_active()) {
+        return [
+            'valid' => true,
+            'message' => 'Phone validation is handled by Pro version'
+        ];
+    }
+
+    // Get selected region from settings
+    $settings = get_option('avp_free_settings', []);
+    $region = isset($settings['default_region']) ? $settings['default_region'] : 'IL';
+    
+    // Clean phone number from any non-digit characters
+    $clean_phone = preg_replace('/[^0-9]/', '', $phone);
+    
+    $valid = false;
+    $message = '';
+    
+    switch ($region) {
+        case 'IL':
+            // Israeli phone format (including mobile and landline)
+            $valid = preg_match('/^(0[23489][0-9]{7}|0[57][0-9]{8})$/', $phone);
+            $message = $valid ? 'מספר הטלפון תקין' : 'פורמט לא תקין - נדרש מספר טלפון ישראלי תקין';
+            break;
+        
+        case 'US':
+            // US phone format - must start with digit 2-9 and be exactly 10 digits
+            $valid = strlen($clean_phone) === 10 && preg_match('/^[2-9]/', $clean_phone);
+            $message = $valid ? 'Valid phone number' : 'Invalid format - must be a valid US phone number (10 digits, starting with 2-9)';
+            break;
+        
+        case 'GB':
+            // UK phone format - must start with 07 and be 11 digits, or start with 7 and be 10 digits
+            $valid = (strlen($clean_phone) === 11 && substr($clean_phone, 0, 2) === '07') || 
+                    (strlen($clean_phone) === 10 && substr($clean_phone, 0, 1) === '7');
+            $message = $valid ? 'Valid phone number' : 'Invalid format - must be a valid UK mobile number';
+            break;
+
+        case 'CA':
+            // Canadian phone format - same as US (NANP)
+            $valid = strlen($clean_phone) === 10 && preg_match('/^[2-9]/', $clean_phone);
+            $message = $valid ? 'Valid phone number' : 'Invalid format - must be a valid Canadian phone number (10 digits, starting with 2-9)';
+            break;
+
+        case 'AU':
+            // Australian phone format
+            // Mobile: starts with 04, length 10
+            // Landline: starts with 02,03,07,08, length 10
+            $valid = strlen($clean_phone) === 10 && 
+                    (
+                        (substr($clean_phone, 0, 2) === '04') || // Mobile
+                        (in_array(substr($clean_phone, 0, 2), ['02', '03', '07', '08'])) // Landline
+                    );
+            $message = $valid ? 'Valid phone number' : 'Invalid format - must be a valid Australian phone number (10 digits, starting with 02/03/04/07/08)';
+            break;
+        
+        default:
+            $valid = false;
+            $message = 'Unsupported region';
+    }
+    
+    return [
+        'valid' => $valid,
+        'message' => $message
+    ];
 } 

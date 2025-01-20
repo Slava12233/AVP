@@ -229,9 +229,20 @@ function validate_phone_advanced($phone, $region = 'IL') {
         // Store original
         $originalPhone = $phone;
         
-        // Add country code
+        // Add country code based on region if number starts with 0
         if (substr($phone, 0, 1) === '0') {
-            $phone = '+972' . substr($phone, 1);
+            switch ($region) {
+                case 'IL':
+                    $phone = '+972' . substr($phone, 1);
+                    break;
+                case 'GB':
+                    $phone = '+44' . substr($phone, 1);
+                    break;
+                case 'AU':
+                    $phone = '+61' . substr($phone, 1);
+                    break;
+                // US and CA don't typically start with 0
+            }
         }
         
         // Use libphonenumber for validation
@@ -241,7 +252,7 @@ function validate_phone_advanced($phone, $region = 'IL') {
         } catch (NumberParseException $e) {
             $result = [
                 'valid' => false,
-                'message' => 'מספר הטלפון בפורמט לא תקין'
+                'message' => 'Invalid phone number format'
             ];
             $validation_cache[$cache_key] = $result;
             return $result;
@@ -251,7 +262,7 @@ function validate_phone_advanced($phone, $region = 'IL') {
         if (!$phoneUtil->isValidNumber($numberProto)) {
             $result = [
                 'valid' => false,
-                'message' => 'מספר הטלפון לא תקין'
+                'message' => 'Invalid phone number'
             ];
             $validation_cache[$cache_key] = $result;
             return $result;
@@ -260,26 +271,123 @@ function validate_phone_advanced($phone, $region = 'IL') {
         // Format number
         $formatted = $phoneUtil->format($numberProto, PhoneNumberFormat::INTERNATIONAL);
         
-        // Get carrier info
-        $prefix = substr($originalPhone, 0, 3);
-        $carriers = [
-            '050' => ['name' => 'פלאפון', 'region' => 'ארצי'],
-            '051' => ['name' => 'וויקום', 'region' => 'ארצי'],
-            '052' => ['name' => 'סלקום', 'region' => 'ארצי'],
-            '053' => ['name' => 'הוט מובייל', 'region' => 'ארצי'],
-            '054' => ['name' => 'פרטנר', 'region' => 'ארצי'],
-            '055' => ['name' => 'רמי לוי', 'region' => 'ארצי'],
-            '058' => ['name' => 'גולן טלקום', 'region' => 'ארצי'],
-            '056' => ['name' => 'מפעיל פלשתינאי', 'region' => 'שטחי הרשות הפלסטינית'],
-            '059' => ['name' => 'ג\'וואל', 'region' => 'שטחי הרשות הפלסטינית']
-        ];
+        // Get carrier info based on region
+        $carrierInfo = ['name' => 'Unknown', 'region' => $region];
         
-        $carrierInfo = $carriers[$prefix] ?? ['name' => 'לא ידוע', 'region' => 'לא ידוע'];
+        // Carrier detection based on region and prefix
+        switch ($region) {
+            case 'IL':
+                $prefix = substr($originalPhone, 0, 3);
+                $carriers = [
+                    '050' => ['name' => 'Pelephone', 'region' => 'Israel'],
+                    '051' => ['name' => 'Weicom', 'region' => 'Israel'],
+                    '052' => ['name' => 'Cellcom', 'region' => 'Israel'],
+                    '053' => ['name' => 'Hot Mobile', 'region' => 'Israel'],
+                    '054' => ['name' => 'Partner', 'region' => 'Israel'],
+                    '055' => ['name' => 'Rami Levy', 'region' => 'Israel'],
+                    '058' => ['name' => 'Golan Telecom', 'region' => 'Israel'],
+                    '056' => ['name' => 'Palestinian Provider', 'region' => 'Palestinian Authority'],
+                    '059' => ['name' => 'Jawwal', 'region' => 'Palestinian Authority']
+                ];
+                $carrierInfo = $carriers[$prefix] ?? ['name' => 'Unknown', 'region' => 'Israel'];
+                break;
+
+            case 'US':
+                $prefix = substr($originalPhone, 0, 3);
+                // Major US carriers based on area codes
+                $carriers = [
+                    // AT&T common area codes
+                    '212' => ['name' => 'AT&T', 'region' => 'New York'],
+                    '213' => ['name' => 'AT&T', 'region' => 'Los Angeles'],
+                    '310' => ['name' => 'AT&T', 'region' => 'Los Angeles'],
+                    // Verizon common area codes
+                    '347' => ['name' => 'Verizon', 'region' => 'New York'],
+                    '415' => ['name' => 'Verizon', 'region' => 'San Francisco'],
+                    '917' => ['name' => 'Verizon', 'region' => 'New York'],
+                    // T-Mobile common area codes
+                    '332' => ['name' => 'T-Mobile', 'region' => 'New York'],
+                    '424' => ['name' => 'T-Mobile', 'region' => 'Los Angeles'],
+                    // Sprint common area codes
+                    '929' => ['name' => 'Sprint', 'region' => 'New York'],
+                    '657' => ['name' => 'Sprint', 'region' => 'California']
+                ];
+                $carrierInfo = $carriers[$prefix] ?? ['name' => 'US Carrier', 'region' => 'United States'];
+                break;
+
+            case 'GB':
+                $prefix = substr($originalPhone, 0, 4);
+                $carriers = [
+                    '7400' => ['name' => 'EE', 'region' => 'UK'],
+                    '7401' => ['name' => 'EE', 'region' => 'UK'],
+                    '7402' => ['name' => 'EE', 'region' => 'UK'],
+                    '7500' => ['name' => 'Vodafone', 'region' => 'UK'],
+                    '7501' => ['name' => 'Vodafone', 'region' => 'UK'],
+                    '7502' => ['name' => 'Vodafone', 'region' => 'UK'],
+                    '7700' => ['name' => 'O2', 'region' => 'UK'],
+                    '7701' => ['name' => 'O2', 'region' => 'UK'],
+                    '7702' => ['name' => 'O2', 'region' => 'UK'],
+                    '7300' => ['name' => 'Three', 'region' => 'UK'],
+                    '7301' => ['name' => 'Three', 'region' => 'UK'],
+                    '7302' => ['name' => 'Three', 'region' => 'UK']
+                ];
+                $carrierInfo = $carriers[$prefix] ?? ['name' => 'UK Carrier', 'region' => 'United Kingdom'];
+                break;
+
+            case 'AU':
+                $prefix = substr($originalPhone, 0, 4);
+                $carriers = [
+                    '0402' => ['name' => 'Optus', 'region' => 'Australia'],
+                    '0403' => ['name' => 'Optus', 'region' => 'Australia'],
+                    '0404' => ['name' => 'Vodafone', 'region' => 'Australia'],
+                    '0405' => ['name' => 'Vodafone', 'region' => 'Australia'],
+                    '0407' => ['name' => 'Telstra', 'region' => 'Australia'],
+                    '0408' => ['name' => 'Telstra', 'region' => 'Australia'],
+                    '0412' => ['name' => 'Telstra', 'region' => 'Australia'],
+                    '0413' => ['name' => 'Optus', 'region' => 'Australia'],
+                    '0414' => ['name' => 'Vodafone', 'region' => 'Australia'],
+                    '0419' => ['name' => 'Telstra', 'region' => 'Australia']
+                ];
+                $carrierInfo = $carriers[$prefix] ?? ['name' => 'AU Carrier', 'region' => 'Australia'];
+                break;
+
+            case 'FR':
+                $prefix = substr($originalPhone, 0, 4);
+                $carriers = [
+                    '0601' => ['name' => 'Orange', 'region' => 'France'],
+                    '0607' => ['name' => 'Orange', 'region' => 'France'],
+                    '0620' => ['name' => 'Bouygues', 'region' => 'France'],
+                    '0630' => ['name' => 'SFR', 'region' => 'France'],
+                    '0640' => ['name' => 'Free Mobile', 'region' => 'France'],
+                    '0650' => ['name' => 'Orange', 'region' => 'France'],
+                    '0660' => ['name' => 'Bouygues', 'region' => 'France'],
+                    '0670' => ['name' => 'SFR', 'region' => 'France'],
+                    '0680' => ['name' => 'Free Mobile', 'region' => 'France']
+                ];
+                $carrierInfo = $carriers[$prefix] ?? ['name' => 'FR Carrier', 'region' => 'France'];
+                break;
+
+            case 'DE':
+                $prefix = substr($originalPhone, 0, 4);
+                $carriers = [
+                    '0151' => ['name' => 'Deutsche Telekom', 'region' => 'Germany'],
+                    '0152' => ['name' => 'Deutsche Telekom', 'region' => 'Germany'],
+                    '0157' => ['name' => 'E-Plus', 'region' => 'Germany'],
+                    '0159' => ['name' => 'O2', 'region' => 'Germany'],
+                    '0160' => ['name' => 'Deutsche Telekom', 'region' => 'Germany'],
+                    '0170' => ['name' => 'Deutsche Telekom', 'region' => 'Germany'],
+                    '0176' => ['name' => 'O2', 'region' => 'Germany'],
+                    '0177' => ['name' => 'E-Plus', 'region' => 'Germany'],
+                    '0179' => ['name' => 'O2', 'region' => 'Germany']
+                ];
+                $carrierInfo = $carriers[$prefix] ?? ['name' => 'DE Carrier', 'region' => 'Germany'];
+                break;
+        }
         
         $result = [
             'valid' => true,
             'message' => sprintf(
-                'מספר הטלפון תקין (ספק: %s, אזור: %s)',
+                'Valid phone number (%s) - Carrier: %s, Region: %s',
+                $formatted,
                 $carrierInfo['name'],
                 $carrierInfo['region']
             ),
@@ -294,7 +402,7 @@ function validate_phone_advanced($phone, $region = 'IL') {
     } catch (\Exception $e) {
         $result = [
             'valid' => false,
-            'message' => 'שגיאה בבדיקת מספר הטלפון'
+            'message' => 'Error validating phone number'
         ];
         $validation_cache[$cache_key] = $result;
         return $result;
