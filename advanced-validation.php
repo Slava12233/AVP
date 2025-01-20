@@ -3,7 +3,7 @@
 Plugin Name: Advanced Validation
 Plugin URI:  https://yoursite.com/advanced-validation
 Description: Validates emails & phones. Free (basic format checks) + Pro (MX, SPF, DKIM, SMTP, libphonenumber).
-Version:     1.0
+Version:     1.1.0
 Author:      Your Name
 Author URI:  https://yoursite.com
 Text Domain: advanced-validation
@@ -62,8 +62,8 @@ function avp_maybe_enqueue_scripts() {
     if ($enqueued) return;
     $enqueued = true;
     
-    // Only enqueue if we're on a page with a form
-    if (!is_admin() && !has_shortcode(get_post()->post_content, 'contact-form-7') && !has_shortcode(get_post()->post_content, 'elementor-template')) {
+    // Always enqueue on frontend
+    if (is_admin()) {
         return;
     }
     
@@ -71,12 +71,13 @@ function avp_maybe_enqueue_scripts() {
     wp_enqueue_script('avp-validation', AVP_PLUGIN_URL . 'assets/js/validation.js', ['jquery'], AVP_VERSION, true);
     
     // Pass settings to JavaScript
-    $settings = \AVP\Helpers\get_plugin_settings('free');
+    $settings = get_option('avp_free_settings', []);
     wp_localize_script('avp-validation', 'avpSettings', [
-        'showLabels' => !empty($settings['show_labels']),
-        'highlightFields' => !empty($settings['highlight_fields']),
+        'showLabels' => isset($settings['show_labels']) ? (bool)$settings['show_labels'] : false,
+        'highlightFields' => isset($settings['highlight_fields']) ? (bool)$settings['highlight_fields'] : false,
         'errorColor' => $settings['error_color'] ?? '#ff0000',
-        'successColor' => $settings['success_color'] ?? '#00ff00'
+        'successColor' => $settings['success_color'] ?? '#00ff00',
+        'defaultRegion' => $settings['default_region'] ?? 'IL'
     ]);
 }
 

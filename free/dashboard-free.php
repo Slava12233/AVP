@@ -75,6 +75,21 @@ function render_settings_page() {
                     </td>
                 </tr>
                 <tr>
+                    <th scope="row"><?php echo \esc_html__('Default Phone Region', 'advanced-validation'); ?></th>
+                    <td>
+                        <select name="avp_free_settings[default_region]" id="avp_default_region">
+                            <option value="IL" <?php selected($settings['default_region'] ?? 'IL', 'IL'); ?>>Israel (IL)</option>
+                            <option value="US" <?php selected($settings['default_region'] ?? 'IL', 'US'); ?>>United States (US)</option>
+                            <option value="GB" <?php selected($settings['default_region'] ?? 'IL', 'GB'); ?>>United Kingdom (GB)</option>
+                            <option value="CA" <?php selected($settings['default_region'] ?? 'IL', 'CA'); ?>>Canada (CA)</option>
+                            <option value="AU" <?php selected($settings['default_region'] ?? 'IL', 'AU'); ?>>Australia (AU)</option>
+                        </select>
+                        <p class="description">
+                            <?php echo \esc_html__('Select the default region for phone number validation', 'advanced-validation'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
                     <th scope="row"><?php echo \esc_html__('Error Color', 'advanced-validation'); ?></th>
                     <td>
                         <input type="color" name="avp_free_settings[error_color]" 

@@ -1,5 +1,6 @@
 jQuery(document).ready(function($) {
     console.log('AVP: Validation script loaded');
+    console.log('AVP: Settings:', window.avpSettings);
     
     // Add or remove highlight class based on settings
     if (window.avpSettings) {
@@ -65,12 +66,18 @@ jQuery(document).ready(function($) {
                 const isValid = response.data.valid;
                 const message = response.data.message;
                 
-                // Remove existing classes
+                console.log('AVP: Validation response:', response.data);
+                console.log('AVP: Show labels setting:', window.avpSettings?.showLabels);
+                
+                // Remove existing classes and messages
                 $container.removeClass('avp-valid avp-invalid');
                 $container.find('.avp-validation-message').remove();
                 
-                // Add new validation message
-                if (window.avpSettings && window.avpSettings.showLabels) {
+                // Always add validation class to container
+                $container.addClass(isValid ? 'avp-valid' : 'avp-invalid');
+                
+                // Add validation message if enabled
+                if (window.avpSettings && window.avpSettings.showLabels && message) {
                     const $message = $('<div>')
                         .addClass('avp-validation-message')
                         .addClass(isValid ? 'avp-valid' : 'avp-invalid')
@@ -78,9 +85,6 @@ jQuery(document).ready(function($) {
                     
                     $field.after($message);
                 }
-                
-                // Add validation class to container
-                $container.addClass(isValid ? 'avp-valid' : 'avp-invalid');
             },
             complete: function() {
                 validationInProgress = false;
